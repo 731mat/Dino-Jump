@@ -25,7 +25,7 @@ public class Dino extends VlastnostiKomponentu {
         this.color = Color.GRAY;
         this.sirka = 20;
         this.xPozice = 200;
-        this.yPozice = 200;
+        this.yPozice = 0;
         try {
             this.image = ImageIO.read(new File("obrazky/dino.png"));
         } catch (IOException ex) {
@@ -42,7 +42,7 @@ public class Dino extends VlastnostiKomponentu {
     @Override
     public void render(Graphics g) {
         g.setColor(this.color);
-        g.fillRect(this.xPozice, this.yPozice, this.sirka, this.sirka);
-        g.drawImage(image, this.xPozice-15, this.yPozice-36, null);
+        g.fillRect(this.xPozice, this.yPozice-10, this.sirka-20, this.sirka);
+        g.drawImage(image, this.xPozice-25, this.yPozice-56, null);
     }
 }

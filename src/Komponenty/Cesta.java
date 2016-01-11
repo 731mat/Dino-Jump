@@ -20,7 +20,7 @@ public class Cesta extends VlastnostiKomponentu {
     public Cesta(VykresliVrstvu l) {
         super(l);
         this.color = Color.GREEN;
-        this.sirka = 5;
+        this.sirka = 2;
     }
 
     @Override
