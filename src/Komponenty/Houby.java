@@ -5,33 +5,35 @@
  */
 package Komponenty;
 
+import dinoRun.VykresliVrstvu;
 import java.awt.Color;
 import java.awt.Graphics;
-import dinoRun.MotoCross;
-import dinoRun.VykresliVrstvu;
 
 /**
  *
- * @author Hloušek Matěj
+ * @author Matěj
  */
-public class Cesta extends VlastnostiKomponentu {
+public class Houby extends VlastnostiKomponentu{
 
-    public Cesta(VykresliVrstvu l) {
+    public Houby(VykresliVrstvu l) {
         super(l);
-        this.color = Color.GREEN;
-        this.sirka = 2;
+        this.sirka = 35;
+        this.color = Color.RED;
+        this.nazevSouboru = "houby";
+        nahrajObrazek();
     }
 
     @Override
     public void aktualizace() {
         this.xPozice-=1;
+        
     }
 
-    
     @Override
     public void render(Graphics g) {
         g.setColor(this.color);
-        g.fillRect(this.xPozice, this.yPozice, this.sirka, this.sirka);
+        //g.fillRect(this.xPozice-27, this.yPozice-39, this.sirka, this.sirka);
+        g.drawImage(this.orientace?imageL:imageP, this.xPozice-25, this.yPozice-38, null);
     }
     
 }

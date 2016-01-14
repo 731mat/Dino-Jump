@@ -18,8 +18,10 @@ public class Mrak extends VlastnostiKomponentu{
     
     public Mrak (VykresliVrstvu l) {
         super(l);
-        this.color = Color.GRAY;
+        this.color = new Color(0, 172, 230);
         this.sirka = 50;
+        this.nazevSouboru = "dinoCervena";
+        nahrajObrazek();
     }
 
     @Override

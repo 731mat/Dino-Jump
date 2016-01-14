@@ -3,29 +3,25 @@ package Komponenty;
 import dinoRun.VykresliVrstvu;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
-import javax.imageio.ImageIO;
+
 
 /**
  *
  * @author Hloušek Matěj
  */
 public class Dino extends VlastnostiKomponentu {
-    protected BufferedImage image = null;
     
     public Dino(VykresliVrstvu l) {
         super(l);
+        
         this.color = Color.GRAY;
-        this.sirka = 20;
+        this.sirka = 40;
         this.xPozice = 200;
         this.yPozice = 0;
-        try {
-            this.image = ImageIO.read(new File("obrazky/dino.png"));
-        } catch (IOException ex) {
-            System.out.println(ex);
-        }
+        this.zivot = 100;
+        this.nazevSouboru = "dinoCervena";
+        nahrajObrazek();
     }
     
     @Override
@@ -37,7 +33,17 @@ public class Dino extends VlastnostiKomponentu {
     @Override
     public void render(Graphics g) {
         g.setColor(this.color);
-        g.fillRect(this.xPozice, this.yPozice-10, this.sirka-20, this.sirka);
-        g.drawImage(image, this.xPozice-25, this.yPozice-56, null);
+       // g.fillRect(this.xPozice-25, this.yPozice-38, this.sirka, this.sirka);
+        g.drawImage(this.orientace?imageL:imageP, this.xPozice-25, this.yPozice-38, null);
+        
+        // délka zeleného proužku - životů
+        int x = (int)((zivot*40)/100);
+        
+        // rendrování ukazatele životů
+        g.setColor(Color.BLACK);
+        g.fillRect(this.xPozice-20, this.yPozice-55, 40, 5);
+        // rendrování ukazatele životů
+        g.setColor(Color.GREEN);
+        g.fillRect(this.xPozice-20, this.yPozice-55, x, 5);
     }
 }

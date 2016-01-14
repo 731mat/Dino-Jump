@@ -2,6 +2,7 @@ package dinoRun;
 
 import Komponenty.Cesta;
 import Komponenty.Dino;
+import Komponenty.Houby;
 import Komponenty.Mrak;
 import Komponenty.VlastnostiKomponentu;
 import java.awt.Canvas;
@@ -18,17 +19,18 @@ import java.util.Random;
 import javax.swing.JOptionPane;
 
 /**
- *
  * @author Matěj Hloušek
  */
 public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, ActionListener {
-    
+
+    int[] terenCesty = new int[300];
     // pole pro cesty a komponenty
     ArrayList<Cesta> poleCest;
     ArrayList<VlastnostiKomponentu> komponenty;
+    ArrayList<VlastnostiKomponentu> veciNaCeste;
     Dino hrac1 = new Dino(this);
     Dino hrac2 = new Dino(this);
-    
+
     // booleany pro tlačítka
     boolean dTL1, nTL1, nTLPovoleni1, pTL1, lTL1;
     boolean dTL2, nTL2, nTLPovoleni2, pTL2, lTL2;
@@ -39,21 +41,25 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
      */
     public VykresliVrstvu() {
         super(); // zavolá canvas
-        this.setSize(new Dimension(800, 600)); // nystavení velikosti canvasu
-        this.poleCest = new ArrayList<Cesta>();
-        this.komponenty = new ArrayList<VlastnostiKomponentu>();
+        this.setSize(new Dimension(1000, 600)); // nystavení velikosti canvasu
+        this.poleCest = new ArrayList<>();
+        this.komponenty = new ArrayList<>();
+        this.veciNaCeste = new ArrayList<>();
         this.naplnPole();
         addKeyListener(this);
         setFocusable(true);
+
+        hrac1.setNazevSouboru("dinoRuzova");
+        hrac1.nahrajObrazek();
+        hrac2.setNazevSouboru("dinoZelena");
+        hrac2.nahrajObrazek();
     }
 
-    
     /**
      * hlavní smyčka hry
      */
     @Override
     public void run() {
-
         // nekonečná smyčka hry
         while (true) {
             // vytvoření časových proměnných
@@ -65,7 +71,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             int smycka = 0;
 
             // smyčka hry kokud nepropíchnu všechny balonky
-            while (hrac1.getXPozice() > -10 || hrac1.getXPozice() > -10) {
+            while (hrac1.getXPozice() > -10 && hrac2.getXPozice() > -10 && hrac1.getZivot() > 0 && hrac2.getZivot() > 0) {
                 // výpočet času na smyšku
                 long aktualniCasSmycky = System.nanoTime();
                 pocetSmycekZaSekundu += (aktualniCasSmycky - posledniCasSmycky) / nanoSecSmycky;
@@ -101,6 +107,8 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 if (reply == JOptionPane.YES_OPTION) {
                     this.hrac1.setXPozice(300);
                     this.hrac2.setXPozice(300);
+                    this.hrac1.setZivot(100);
+                    this.hrac2.setZivot(100);
                     dTL1 = nTL1 = pTL1 = lTL1 = false;
                     dTL2 = nTL2 = pTL2 = lTL2 = false;
                     //this.score = 0;
@@ -111,7 +119,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         }// hlavní while
     }
 
-    
     // vytvoření vlákna
     public void start() {
         Thread vlakno1;
@@ -119,8 +126,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         vlakno1.start();
     }
 
-    
-    
     /**
      * Metoda zjišťuje kompletní aktualizaci všech objektů
      */
@@ -128,21 +133,21 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         // aktualzace hráčů
         hrac1.aktualizace();
         hrac2.aktualizace();
-        
+
         //aktualizace pohybu - zmačknuté tlačítka + kolize
         pohyb();
-        
+
         // aktualizace každého objektu cesty
-        for (Cesta e : this.poleCest) {   
+        for (Cesta e : this.poleCest) {
             e.aktualizace();
-            
+
             // pokud nějý box cesty přesáhne hodnotu -10 => nebude vidět
             // >> bude smazán a následně vložen na konec pole => na začátek cesty
             if (e.getXPozice() < -10) {
                 this.poleCest.remove(e);
 
                 Cesta neupraveny = new Cesta(this);
-                neupraveny.setXPozice(800);
+                neupraveny.setXPozice(this.getWidth());
                 int predchozi = this.poleCest.size() - 1;
                 Random rand = new Random();
                 neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() + (this.score % 2 == 1 ? 1 : -1));
@@ -156,16 +161,15 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         // totožné s  aktualizací cesty
         for (VlastnostiKomponentu e : this.komponenty) {
             e.aktualizace();
-            
+
             if (e.getXPozice() < -10) {
                 this.komponenty.remove(e);
 
                 Mrak neupraveny = new Mrak(this);
-                neupraveny.setXPozice(800);
+                neupraveny.setXPozice(this.getWidth());
 
                 int predchozi = this.komponenty.size() - 1;
                 Random rand = new Random();
-                //neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() + (this.score%2 == 1 ? 1: -1));
                 neupraveny.setYPozice(komponenty.get(predchozi).getYPozice() + (this.score % 2 == 1 ? 20 : -20));
 
                 this.komponenty.add(neupraveny); // vložení nepřítele do arrylistu 
@@ -173,12 +177,33 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             }
         }
 
+        // render komponentů
+        // totožné s  aktualizací cesty
+        for (VlastnostiKomponentu e : this.veciNaCeste) {
+            e.aktualizace();
+
+            if (e.getXPozice() < -10) {
+                this.veciNaCeste.remove(e);
+
+                Houby neupraveny = new Houby(this);
+                neupraveny.setXPozice(this.getWidth());
+
+                int predchozi = this.veciNaCeste.size() - 1;
+                Random rand = new Random();
+                neupraveny.setYPozice(poleCest.get(predchozi).getYPozice());
+
+                this.veciNaCeste.add(neupraveny); // vložení nepřítele do arrylistu 
+                break;
+            }
+        }
+        kolizeSnecimNaCeste();
+
     }
 
     /**
-     * Metoda zjišťuje kompletní rendrování canvasu pomocí 3 bafrů
-     * použití bafrů k vůli pomalému vykreslování
-     * při každém vyvolání funkce se jen buffery vymění a nevykresluje se do aktualního buff.
+     * Metoda zjišťuje kompletní rendrování canvasu pomocí 3 bafrů použití bafrů
+     * k vůli pomalému vykreslování při každém vyvolání funkce se jen buffery
+     * vymění a nevykresluje se do aktualního buff.
      */
     private void render() {
         // vytvoření třech bafrů pro canvas
@@ -187,7 +212,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             this.createBufferStrategy(3);
             return;
         }
-        
+
         // nastavení do kterého bafru budu kreslit
         Graphics g = buffer.getDrawGraphics();
 
@@ -197,19 +222,23 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
 
         // vykreslení každé kostičky cesty
         // dokreslení oblohy (modré)
-        for (Cesta e : this.poleCest) {   
+        for (Cesta e : this.poleCest) {
             e.render(g);
             // obloha
-            g.setColor(Color.BLUE);
-            g.fillRect(e.getXPozice(), e.getYPozice() - 1000, 2, 1000); 
+            g.setColor(new Color(179, 236, 255));
+            g.fillRect(e.getXPozice(), e.getYPozice() - 1000, 2, 1000);
         }
-        
-        
+
         // vykreslení komponentů
         for (VlastnostiKomponentu e : this.komponenty) {
             e.render(g);
         }
-        
+
+        // vykreslení věcí na cestě
+        for (VlastnostiKomponentu e : this.veciNaCeste) {
+            e.render(g);
+        }
+
         // vykreslení hráčů
         hrac1.render(g);
         hrac2.render(g);
@@ -222,24 +251,36 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
     }
 
     /**
-     * Metoda zjišťuje prvotní naplnění herního pole jak objekty cesty tak objekty komponentů cesty
+     * Metoda zjišťuje prvotní naplnění herního pole jak objekty cesty tak
+     * objekty komponentů cesty
      */
-    public void naplnPole() {
+    public final void naplnPole() {
         // 800- šířka okna + 10 - kvůli kolizím
-        for (int i = 0; i < 810; i += 2) {
+        for (int i = 0; i < this.getWidth() + 10; i += 2) {
             Cesta neupraveny = new Cesta(this);
             neupraveny.setXPozice(i);
             neupraveny.setYPozice(400);
             int barva = poleCest.size() % 2;
             neupraveny.setColor(barva == 1 ? Color.RED : Color.BLACK);
             this.poleCest.add(neupraveny); // vložení nepřítele do arrylistu 
-            System.out.println(this.poleCest.size());
         }
-        for (int i = 0; i < 810; i += 100) {
+        for (int i = 0; i < this.getWidth() + 10; i += 100) {
             Mrak neupraveny = new Mrak(this);
             neupraveny.setXPozice(i);
             neupraveny.setYPozice(150);
             this.komponenty.add(neupraveny);
+        }
+        for (int i = 0; i < this.getWidth() + 10; i += 400) {
+            Random rand = new Random();
+            Houby neupraveny = new Houby(this);
+            neupraveny.setXPozice(i + rand.nextInt(20));
+            neupraveny.setYPozice(400);
+            neupraveny.setOrientace(rand.nextInt(2) == 1? true:false);
+            System.out.println(rand.nextInt(2) == 1? true:false);
+            this.veciNaCeste.add(neupraveny);
+        }
+
+        for (int i = 0; i < terenCesty.length; i++) {
         }
     }
 
@@ -247,16 +288,16 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
     public void keyTyped(KeyEvent ke) {
     }
 
-    
-    
-    
     /**
-     * Metoda zjišťuje funkci tlačítek
-     * pokud je tlačítko zmáčknuto tak to hodí TRUE do příslušné proměnné daného tlačítka
+     * Metoda zjišťuje funkci tlačítek pokud je tlačítko zmáčknuto tak to hodí
+     * TRUE do příslušné proměnné daného tlačítka
+     *
+     * @param ke
      */
+    @Override
     public void keyPressed(KeyEvent ke) {
         switch (ke.getKeyCode()) {
-            
+
             // HRAC 1 => šipky
             case KeyEvent.VK_UP:
                 nTL1 = true;
@@ -288,12 +329,15 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
     }
 
     /**
-     * Metoda zjišťuje funkci tlačítek
-     * pokud je tlačítko puštěno tak to hodí FALSE do příslušné proměnné daného tlačítka
+     * Metoda zjišťuje funkci tlačítek pokud je tlačítko puštěno tak to hodí
+     * FALSE do příslušné proměnné daného tlačítka
+     *
+     * @param ke
      */
+    @Override
     public void keyReleased(KeyEvent ke) {
         switch (ke.getKeyCode()) {
-            
+
             // HRAC 1 => šipky
             case KeyEvent.VK_UP:
                 nTL1 = false;
@@ -307,7 +351,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             case KeyEvent.VK_RIGHT:
                 pTL1 = false;
                 break;
-            
+
             // HRAC 2 => WASD
             case KeyEvent.VK_W:
                 nTL2 = false;
@@ -328,19 +372,16 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
     public void actionPerformed(ActionEvent ae) {
     }
 
-    
-    
     /**
-     * Metoda zjišťuje kolize mezi hráči
-     * zajišťuje pohyb plus + udržení se na hrací cestě
+     * Metoda zjišťuje kolize mezi hráči zajišťuje pohyb plus + udržení se na
+     * hrací cestě
      */
     public void pohyb() {
         int max1 = 0; // maximalní výška výskoku
         int max2 = 0;
         boolean chyba1 = true;  // chybová proměnná kvůli neurčení nad kterým boxem cesty se nachází
         boolean chyba2 = true;
-        
-        
+
         // for prochází pole cest
         for (Cesta e : this.poleCest) {
             //  HRAC 1
@@ -352,8 +393,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             } else {
                 e.setColor(Color.BLACK);
             }
-            
-            
+
             //HRAC 2
             if (e.getYPozice() < hrac2.getYPozice() + hrac2.getSirka() && hrac2.getXPozice() > e.getXPozice() && hrac2.getXPozice() < e.getXPozice() + e.getSirka()) {
                 e.setColor(Color.RED);
@@ -362,7 +402,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 e.setColor(Color.BLACK);
             }
 
-            
             //  HRAC 1
             // když zjistí že objekt hráče je nad nějakým boxem cesty tak ten box zvýrazní
             // a rozdíl výšky hrace a boxu cesty zapise do proměnné max
@@ -370,23 +409,21 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 max1 = e.getYPozice() - hrac1.getYPozice();
                 chyba1 = false;
             }
-            
+
             //HRAC 2
             if (hrac2.getXPozice() > e.getXPozice() - 1 && hrac2.getXPozice() < e.getXPozice() + e.getSirka()) {
                 max2 = e.getYPozice() - hrac2.getYPozice();
                 chyba2 = false;
             }
         }
-        
-        
+
         //HRAC 1 - šipky
         // reáguje na zmáčknuté tlačítka
         //tlačítko dolů
         if (dTL1 && max1 > 10) {
             hrac1.setYPozice(hrac1.getYPozice() + 10);
         }
-        
-        
+
         //tlačítko nahoru
         if (!chyba1) {
             // zjistí zda se dotkl země 3- z důvodů odchylky
@@ -397,25 +434,23 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             // pokud je hrac 100 pixelů vysoko tak vypne stoupání
             nTLPovoleni1 = max1 > 100 ? false : nTLPovoleni1;
         }
-        
+
         //tlacitko DOPRAVA
         if (pTL1) {
             hrac1.setXPozice(hrac1.getXPozice() + 5);
         }
-        
+
         //tlacitko DOLEVA
         if (lTL1) {
             hrac1.setXPozice(hrac1.getXPozice() - 5);
         }
 
-        
-        
         // HRAC 2  - WASD
         // tlačitko S
         if (dTL2 && max2 > 10) {
             hrac2.setYPozice(hrac2.getYPozice() + 10);
         }
-        
+
         // tlačitko W
         if (!chyba2) {
             nTLPovoleni2 = max2 < 3 ? true : nTLPovoleni2;
@@ -425,7 +460,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             hrac2.setYPozice(hrac2.getYPozice() - 15);
             nTLPovoleni2 = max2 > 100 ? false : nTLPovoleni2;
         }
-        
+
         // tlačitko P
         if (pTL2) {
             hrac2.setXPozice(hrac2.getXPozice() + 5);
@@ -436,18 +471,65 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             hrac2.setXPozice(hrac2.getXPozice() - 5);
         }
 
-        //if(chyba){return;}
-        
-        
+        //if(chyba1){return;}
         // HRAC 1
         // pokud je objekt postavy níž než cesta zak ho dá na cestu
         hrac1.setYPozice(max1 < -1 ? hrac1.getYPozice() + max1 : hrac1.getYPozice());
         // pokud je objekt postavy víš než cesta zak ho dá na cestu
         hrac1.setYPozice(max1 > 0 ? hrac1.getYPozice() + 10 : hrac1.getYPozice()); // udržení panacka na trase
-
         // HRAC 2
         hrac2.setYPozice(max2 < -1 ? hrac2.getYPozice() + max2 : hrac2.getYPozice());
         hrac2.setYPozice(max2 > 0 ? hrac2.getYPozice() + 10 : hrac2.getYPozice()); // udržení panacka na trase
+    }
 
+    public void kolizeSnecimNaCeste() {
+        boolean zivot1 = false;
+        boolean zivot2 = false;
+        for (VlastnostiKomponentu e : this.veciNaCeste) {
+            
+            // HRAČ 1
+            //ověření pokud levým spodním rohem nezasahuje do objektu
+            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25) 
+                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
+                    zivot1 = true;
+            }
+            //ověření pokud pravým spodním rohem nezasahuje do objektu
+            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25+hrac1.getSirka()) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25+hrac1.getSirka()) 
+                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
+                hrac1.setZivot(hrac1.getZivot()-1);
+                    zivot1 = true;
+            }
+            
+            //ověření pokud prostředním spodním bodem nezasahuje do objektu
+            // kdyby náhodou byl objekt užší než hráč
+            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25+hrac1.getSirka()/2) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25+hrac1.getSirka()/2) 
+                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
+                hrac1.setZivot(hrac1.getZivot()-1);
+                    zivot1 = true;
+            }
+            
+            
+            
+            // HRAC 2 
+            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25) 
+                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
+                    zivot2 = true;
+            }
+            
+            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25+hrac2.getSirka()) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25+hrac2.getSirka()) 
+                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
+                hrac2.setZivot(hrac2.getZivot()-1);
+                    zivot2 = true;
+            }
+            
+            
+            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25+hrac2.getSirka()/2) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25+hrac2.getSirka()/2) 
+                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
+                hrac2.setZivot(hrac2.getZivot()-1);
+                    zivot2 = true;
+            }   
+        }
+        hrac1.setZivot(zivot1?hrac1.getZivot()-1:hrac1.getZivot());
+        hrac2.setZivot(zivot2?hrac2.getZivot()-1:hrac2.getZivot());
     }
 }
