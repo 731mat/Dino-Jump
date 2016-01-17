@@ -18,13 +18,13 @@ public class Cesta extends VlastnostiKomponentu {
 
     public Cesta(VykresliVrstvu l) {
         super(l);
-        this.color = Color.GREEN;
+        this.color = Color.BLACK;
         this.sirka = 2;
     }
 
     @Override
     public void aktualizace() {
-        this.xPozice-=this.rychlost*2;
+        this.xPozice-=this.rychlost+1;
     }
 
     

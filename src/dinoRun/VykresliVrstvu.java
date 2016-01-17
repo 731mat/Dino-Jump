@@ -14,19 +14,15 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
-import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 
 /**
  * @author Matěj Hloušek
  */
 public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, ActionListener {
-
+    int hracuVeHre = 2;
     int[] terenCesty = new int[300];
     // pole pro cesty a komponenty
     ArrayList<Cesta> poleCest;
@@ -64,10 +60,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
      */
     @Override
     public void run() {
-        while (!renderMenu()) {
-
-        }
-
         // nekonečná smyčka hry
         while (true) {
             // vytvoření časových proměnných
@@ -79,7 +71,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             int smycka = 0;
 
             // smyčka hry kokud nepropíchnu všechny balonky
-            while (hrac1.getXPozice() > -10 && hrac2.getXPozice() > -10 && hrac1.getZivot() > 0 && hrac2.getZivot() > 0) {
+            while (hrac1.getXPozice() > -10 && (hrac2.getXPozice() > -10 || hracuVeHre == 1) && hrac1.getZivot() > 0 && (hrac2.getZivot() > 0 || hracuVeHre == 1)) {
                 // výpočet času na smyšku
                 long aktualniCasSmycky = System.nanoTime();
                 pocetSmycekZaSekundu += (aktualniCasSmycky - posledniCasSmycky) / nanoSecSmycky;
@@ -106,14 +98,14 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                     fps = 0;
                     smycka = 0;
                     if(score%5 == 0){vlozeniHub();}
-
                     this.score++;
                 }
             }//while hry
 
             // když je smyčka hry ukončena vypíšu dialogové okno se score a možnost opakování
             if (true) {
-                int reply = JOptionPane.showConfirmDialog(null, "Tvoje skóré je: " + this.score + "s\n chceš hru restartovat ?", "hraj znovu", JOptionPane.YES_NO_OPTION);
+                String hracKteryProhral = ((hrac2.getXPozice() > -10 || hracuVeHre == 1) && (hrac2.getZivot() > 0 || hracuVeHre == 1))?"hrač 1":"hrač 2";
+                int reply = JOptionPane.showConfirmDialog(null,"Prohrál jsi "+hracKteryProhral+ "\nTvoje skóré je: " + this.score + "s\n chceš hru restartovat ?", "hraj znovu", JOptionPane.YES_NO_OPTION);
                 if (reply == JOptionPane.YES_OPTION) {
                     this.hrac1.setXPozice(300);
                     this.hrac2.setXPozice(300);
@@ -142,7 +134,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
     private void aktualizace() {
         // aktualzace hráčů
         hrac1.aktualizace();
-        hrac2.aktualizace();
+       if(hracuVeHre == 2){ hrac2.aktualizace();}
 
         //aktualizace pohybu - zmačknuté tlačítka + kolize
         pohyb();
@@ -169,8 +161,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                         neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() - (rand.nextInt(2) / 2 == 1 ? 1 : -1));
                     }
                 }
-
-                neupraveny.setColor(Color.BLACK);
                 this.poleCest.add(neupraveny); // vložení nepřítele do arrylistu 
                 break;
             }
@@ -211,83 +201,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
 
     }
 
-    /**
-     * Metoda zjišťuje kompletní rendrování canvasu pomocí 3 bafrů použití bafrů
-     * k vůli pomalému vykreslování při každém vyvolání funkce se jen buffery
-     * vymění a nevykresluje se do aktualního buff.
-     */
-    private boolean renderMenu() {
-        // vytvoření třech bafrů pro canvas
-        BufferStrategy buffer = this.getBufferStrategy();
-        if (buffer == null) {
-            this.createBufferStrategy(3);
-            return false;
-        }
-        BufferedImage dino = null;
-        BufferedImage pozadi = null;
-        try {
-            dino = ImageIO.read(new File("obrazky/dinoHra/menuDino.png"));
-            pozadi = ImageIO.read(new File("obrazky/dinoHra/" + "-02.png"));
-        } catch (IOException ex) {
-            System.out.println(ex);
-        }
-
-        // nastavení do kterého bafru budu kreslit
-        Graphics g = buffer.getDrawGraphics();
-
-        // zalené pozadí
-        g.setColor(Color.CYAN);
-        g.fillRect(0, 0, this.getWidth(), this.getHeight());
-        g.drawImage(dino, 0, 130, this);
-
-        g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(this.getWidth() / 3, this.getHeight() / 4, 100, 30);
-        g.setColor(Color.black);
-        g.drawString("Hrát", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20); // výpis score
-
-        g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(this.getWidth() / 3, this.getHeight() / 4 + 35, 100, 30);
-        g.setColor(Color.black);
-        g.drawString("Hrač 1", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20 + 35); // výpis score
-        
-        g.setColor(Color.BLUE);
-        g.fillRect(this.getWidth() / 3+ 125, this.getHeight() / 4 + 35, 20, 20);
-        g.setColor(Color.RED);
-        g.fillRect(this.getWidth() / 3+ 155, this.getHeight() / 4 + 35, 20, 20);
-        g.setColor(Color.ORANGE);
-        g.fillRect(this.getWidth() / 3+ 185, this.getHeight() / 4 + 35, 20, 20);
-        g.setColor(Color.PINK);
-        g.fillRect(this.getWidth() / 3+ 215, this.getHeight() / 4 + 35, 20, 20);
-        g.setColor(Color.GREEN);
-        g.fillRect(this.getWidth() / 3+ 245, this.getHeight() / 4 + 35, 20, 20);
-
-        g.setColor(Color.LIGHT_GRAY);
-        g.fillRect(this.getWidth() / 3, this.getHeight() / 4 + 75, 100, 30);
-        g.setColor(Color.black);
-        g.drawString("Hrač 2", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20 + 75); // výpis score
-        
-        g.setColor(Color.BLUE);
-        g.fillRect(this.getWidth() / 3+ 125, this.getHeight() / 4 + 75, 20, 20);
-        g.setColor(Color.RED);
-        g.fillRect(this.getWidth() / 3+ 155, this.getHeight() / 4 + 75, 20, 20);
-        g.setColor(Color.ORANGE);
-        g.fillRect(this.getWidth() / 3+ 185, this.getHeight() / 4 + 75, 20, 20);
-        g.setColor(Color.PINK);
-        g.fillRect(this.getWidth() / 3+ 215, this.getHeight() / 4 + 75, 20, 20);
-        g.setColor(Color.GREEN);
-        g.fillRect(this.getWidth() / 3+ 245, this.getHeight() / 4 + 75, 20, 20);
-        
-        
-        
-        
-        
-
-        // nastavení barvy pro text
-        g.dispose(); // ukončení kreslení
-        buffer.show(); // vyměnění bafru a vykreslení najednou
-        return false;
-    }
-
+    
     /**
      * Metoda zjišťuje kompletní rendrování canvasu pomocí 3 bafrů použití bafrů
      * k vůli pomalému vykreslování při každém vyvolání funkce se jen buffery
@@ -329,7 +243,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
 
         // vykreslení hráčů
         hrac1.render(g);
-        hrac2.render(g);
+        if(hracuVeHre==2){hrac2.render(g);}
 
         // nastavení barvy pro text
         g.setColor(Color.black);
@@ -348,8 +262,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             Cesta neupraveny = new Cesta(this);
             neupraveny.setXPozice(i);
             neupraveny.setYPozice(400);
-            int barva = poleCest.size() % 2;
-            neupraveny.setColor(barva == 1 ? Color.RED : Color.BLACK);
             this.poleCest.add(neupraveny); // vložení nepřítele do arrylistu 
         }
         for (int i = 0; i < this.getWidth() + 10; i += 100) {
@@ -358,16 +270,14 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             neupraveny.setYPozice(150);
             this.komponenty.add(neupraveny);
         }
+        // generování hub
         for (int i = 0; i < this.getWidth() + 10; i += 400) {
             Random rand = new Random();
             Houby neupraveny = new Houby(this);
-            neupraveny.setXPozice(i + rand.nextInt(20));
+            neupraveny.setXPozice(i + rand.nextInt(10));
             neupraveny.setYPozice(400);
-            neupraveny.setOrientace(rand.nextInt(3) == 1 ? true : false);
+            neupraveny.setOrientace((rand.nextInt(3) == 1));
             this.veciNaCeste.add(neupraveny);
-        }
-
-        for (int i = 0; i < terenCesty.length; i++) {
         }
     }
 
@@ -471,23 +381,6 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
 
         // for prochází pole cest
         for (Cesta e : this.poleCest) {
-            //  HRAC 1
-            // když zjistí že objekt hráče je na nějakém boxu cesty tak ten box zvýrazní
-            // vizualni detekce dotyku 
-            if (e.getYPozice() < hrac1.getYPozice() + hrac1.getSirka() && hrac1.getXPozice() > e.getXPozice() && hrac1.getXPozice() < e.getXPozice() + e.getSirka()) {
-                e.setColor(Color.yellow);
-
-            } else {
-                e.setColor(Color.BLACK);
-            }
-
-            //HRAC 2
-            if (e.getYPozice() < hrac2.getYPozice() + hrac2.getSirka() && hrac2.getXPozice() > e.getXPozice() && hrac2.getXPozice() < e.getXPozice() + e.getSirka()) {
-                e.setColor(Color.RED);
-
-            } else {
-                e.setColor(Color.BLACK);
-            }
 
             //  HRAC 1
             // když zjistí že objekt hráče je nad nějakým boxem cesty tak ten box zvýrazní
@@ -612,6 +505,8 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                     && hrac2.getYPozice() + hrac2.getSirka() > e.getYPozice()) {
                 zivot2 = e.isOrientace() ? 1 : 2;
             }
+            
+            // if pro přidání životu hráči a odstranění houby z pole
             if (zivot1 == 1) {
                 hrac1.setZivot(hrac1.getZivot() + 30);
                 veciNaCeste.remove(e);
@@ -625,16 +520,12 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 return;
             }
         }
-        System.out.println(zivot1);
+        
         switch (zivot1) {
             case 0:
                 hrac1.getZivot();
                 break;
-            case 1:
-                hrac1.setZivot(hrac1.getZivot() + 80);
-                break;
             case 2:
-
                 hrac1.setZivot(hrac1.getZivot() - 1);
                 break;
         }
@@ -648,7 +539,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         }
     }
     
-    
+    // nefunkční přepočet pře phybu 3 je to už nezvladatelné chtělo by to float
     public void nastaveniRychlosti(){
         hrac1.setRychlost(hrac1.getRychlost()+1);
         hrac2.setRychlost(hrac2.getRychlost()+1);
@@ -662,6 +553,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             e.setRychlost(e.getRychlost()+1);
         }
     }
+    //vygeneruje náhodnou houbu na načátek
     public void vlozeniHub(){
                 Houby neupraveny = new Houby(this);
                 neupraveny.setXPozice(this.getWidth());
@@ -673,6 +565,4 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
 
                 this.veciNaCeste.add(neupraveny); // vložení nepřítele do arrylistu 
     }
-
-
 }
