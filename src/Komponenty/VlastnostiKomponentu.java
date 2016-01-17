@@ -25,9 +25,11 @@ abstract public class VlastnostiKomponentu {
     protected int sirka;
     protected int vyska;
     protected int zivot;
+    protected int rychlost = 1;
     protected boolean orientace;
     protected String nazevSouboru;
     protected VykresliVrstvu map;
+    protected String jmeno;
     protected BufferedImage imageP = null;
     protected BufferedImage imageL = null;
     
@@ -94,7 +96,8 @@ abstract public class VlastnostiKomponentu {
     }
 
     public void setZivot(int zivot) {
-        this.zivot = (zivot < 101 &&  zivot > -1)? zivot: this.zivot;
+        this.zivot = (zivot > -1)? zivot: this.zivot;
+        this.zivot = (zivot > 100)? 100: this.zivot;
     }
 
     public String getNazevSouboru() {
@@ -112,7 +115,14 @@ abstract public class VlastnostiKomponentu {
     public void setOrientace(boolean orientace) {
         this.orientace = orientace;
     }
-    
+
+    public int getRychlost() {
+        return rychlost;
+    }
+
+    public void setRychlost(int rychlost) {
+        this.rychlost = rychlost == 0 ? 1: rychlost;
+    }
     
     public void nahrajObrazek() {
         try {

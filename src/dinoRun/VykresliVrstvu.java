@@ -14,8 +14,12 @@ import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferStrategy;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Random;
+import javax.imageio.ImageIO;
 import javax.swing.JOptionPane;
 
 /**
@@ -41,7 +45,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
      */
     public VykresliVrstvu() {
         super(); // zavolá canvas
-        this.setSize(new Dimension(1000, 600)); // nystavení velikosti canvasu
+        this.setSize(new Dimension(1200, 600)); // nystavení velikosti canvasu
         this.poleCest = new ArrayList<>();
         this.komponenty = new ArrayList<>();
         this.veciNaCeste = new ArrayList<>();
@@ -60,6 +64,10 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
      */
     @Override
     public void run() {
+        while (!renderMenu()) {
+
+        }
+
         // nekonečná smyčka hry
         while (true) {
             // vytvoření časových proměnných
@@ -93,9 +101,11 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 //každou sekundu přidá score a vypíše na obrazovku
                 if (System.currentTimeMillis() - poslednyCasVypisu > 1000) {
                     poslednyCasVypisu += 1000;
-                    System.out.println("smycky: " + smycka + ", FPS: " + fps + " pocet objektu: " + this.poleCest.size());
+                    System.out.println("smycky: " + smycka + ", FPS: " + fps + " pocet objektu: "
+                            + (this.poleCest.size() + this.komponenty.size() + this.veciNaCeste.size()));
                     fps = 0;
                     smycka = 0;
+                    if(score%5 == 0){vlozeniHub();}
 
                     this.score++;
                 }
@@ -150,7 +160,16 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
                 neupraveny.setXPozice(this.getWidth());
                 int predchozi = this.poleCest.size() - 1;
                 Random rand = new Random();
-                neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() + (this.score % 2 == 1 ? 1 : -1));
+                if (poleCest.get(predchozi).getYPozice() > 500) {
+                    neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() - (rand.nextInt(50) % 2 == 1 ? 1 : -1));
+                } else {
+                    if (poleCest.get(predchozi).getYPozice() < 450) {
+                        neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() + ( rand.nextInt(50) % 2 == 1 ? 1 : -1));
+                    } else {
+                        neupraveny.setYPozice(poleCest.get(predchozi).getYPozice() - (rand.nextInt(2) / 2 == 1 ? 1 : -1));
+                    }
+                }
+
                 neupraveny.setColor(Color.BLACK);
                 this.poleCest.add(neupraveny); // vložení nepřítele do arrylistu 
                 break;
@@ -183,21 +202,90 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             e.aktualizace();
 
             if (e.getXPozice() < -10) {
-                this.veciNaCeste.remove(e);
-
-                Houby neupraveny = new Houby(this);
-                neupraveny.setXPozice(this.getWidth());
-
-                int predchozi = this.veciNaCeste.size() - 1;
-                Random rand = new Random();
-                neupraveny.setYPozice(poleCest.get(predchozi).getYPozice());
-
-                this.veciNaCeste.add(neupraveny); // vložení nepřítele do arrylistu 
+                this.veciNaCeste.remove(e);                
+                vlozeniHub();
                 break;
             }
         }
         kolizeSnecimNaCeste();
 
+    }
+
+    /**
+     * Metoda zjišťuje kompletní rendrování canvasu pomocí 3 bafrů použití bafrů
+     * k vůli pomalému vykreslování při každém vyvolání funkce se jen buffery
+     * vymění a nevykresluje se do aktualního buff.
+     */
+    private boolean renderMenu() {
+        // vytvoření třech bafrů pro canvas
+        BufferStrategy buffer = this.getBufferStrategy();
+        if (buffer == null) {
+            this.createBufferStrategy(3);
+            return false;
+        }
+        BufferedImage dino = null;
+        BufferedImage pozadi = null;
+        try {
+            dino = ImageIO.read(new File("obrazky/dinoHra/menuDino.png"));
+            pozadi = ImageIO.read(new File("obrazky/dinoHra/" + "-02.png"));
+        } catch (IOException ex) {
+            System.out.println(ex);
+        }
+
+        // nastavení do kterého bafru budu kreslit
+        Graphics g = buffer.getDrawGraphics();
+
+        // zalené pozadí
+        g.setColor(Color.CYAN);
+        g.fillRect(0, 0, this.getWidth(), this.getHeight());
+        g.drawImage(dino, 0, 130, this);
+
+        g.setColor(Color.LIGHT_GRAY);
+        g.fillRect(this.getWidth() / 3, this.getHeight() / 4, 100, 30);
+        g.setColor(Color.black);
+        g.drawString("Hrát", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20); // výpis score
+
+        g.setColor(Color.LIGHT_GRAY);
+        g.fillRect(this.getWidth() / 3, this.getHeight() / 4 + 35, 100, 30);
+        g.setColor(Color.black);
+        g.drawString("Hrač 1", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20 + 35); // výpis score
+        
+        g.setColor(Color.BLUE);
+        g.fillRect(this.getWidth() / 3+ 125, this.getHeight() / 4 + 35, 20, 20);
+        g.setColor(Color.RED);
+        g.fillRect(this.getWidth() / 3+ 155, this.getHeight() / 4 + 35, 20, 20);
+        g.setColor(Color.ORANGE);
+        g.fillRect(this.getWidth() / 3+ 185, this.getHeight() / 4 + 35, 20, 20);
+        g.setColor(Color.PINK);
+        g.fillRect(this.getWidth() / 3+ 215, this.getHeight() / 4 + 35, 20, 20);
+        g.setColor(Color.GREEN);
+        g.fillRect(this.getWidth() / 3+ 245, this.getHeight() / 4 + 35, 20, 20);
+
+        g.setColor(Color.LIGHT_GRAY);
+        g.fillRect(this.getWidth() / 3, this.getHeight() / 4 + 75, 100, 30);
+        g.setColor(Color.black);
+        g.drawString("Hrač 2", this.getWidth() / 3 + 5, this.getHeight() / 4 + 20 + 75); // výpis score
+        
+        g.setColor(Color.BLUE);
+        g.fillRect(this.getWidth() / 3+ 125, this.getHeight() / 4 + 75, 20, 20);
+        g.setColor(Color.RED);
+        g.fillRect(this.getWidth() / 3+ 155, this.getHeight() / 4 + 75, 20, 20);
+        g.setColor(Color.ORANGE);
+        g.fillRect(this.getWidth() / 3+ 185, this.getHeight() / 4 + 75, 20, 20);
+        g.setColor(Color.PINK);
+        g.fillRect(this.getWidth() / 3+ 215, this.getHeight() / 4 + 75, 20, 20);
+        g.setColor(Color.GREEN);
+        g.fillRect(this.getWidth() / 3+ 245, this.getHeight() / 4 + 75, 20, 20);
+        
+        
+        
+        
+        
+
+        // nastavení barvy pro text
+        g.dispose(); // ukončení kreslení
+        buffer.show(); // vyměnění bafru a vykreslení najednou
+        return false;
     }
 
     /**
@@ -275,8 +363,7 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             Houby neupraveny = new Houby(this);
             neupraveny.setXPozice(i + rand.nextInt(20));
             neupraveny.setYPozice(400);
-            neupraveny.setOrientace(rand.nextInt(2) == 1? true:false);
-            System.out.println(rand.nextInt(2) == 1? true:false);
+            neupraveny.setOrientace(rand.nextInt(3) == 1 ? true : false);
             this.veciNaCeste.add(neupraveny);
         }
 
@@ -405,11 +492,10 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
             //  HRAC 1
             // když zjistí že objekt hráče je nad nějakým boxem cesty tak ten box zvýrazní
             // a rozdíl výšky hrace a boxu cesty zapise do proměnné max
-            if (hrac1.getXPozice() > e.getXPozice() - 1 && hrac1.getXPozice() < e.getXPozice() + e.getSirka()) {
+            if (hrac1.getXPozice() > e.getXPozice() && hrac1.getXPozice() < e.getXPozice() + e.getSirka() + 1) {
                 max1 = e.getYPozice() - hrac1.getYPozice();
                 chyba1 = false;
             }
-
             //HRAC 2
             if (hrac2.getXPozice() > e.getXPozice() - 1 && hrac2.getXPozice() < e.getXPozice() + e.getSirka()) {
                 max2 = e.getYPozice() - hrac2.getYPozice();
@@ -472,64 +558,121 @@ public class VykresliVrstvu extends Canvas implements Runnable, KeyListener, Act
         }
 
         //if(chyba1){return;}
+        //if(chyba2){return;}
         // HRAC 1
         // pokud je objekt postavy níž než cesta zak ho dá na cestu
-        hrac1.setYPozice(max1 < -1 ? hrac1.getYPozice() + max1 : hrac1.getYPozice());
+        // -1 == hodnota o trerou ho vysune nahoru
+        hrac1.setYPozice(max1 < -1 ? hrac1.getYPozice() - 1 : hrac1.getYPozice());
+        hrac1.setYPozice(max1 < -5 ? hrac1.getYPozice() - 4 : hrac1.getYPozice());
         // pokud je objekt postavy víš než cesta zak ho dá na cestu
         hrac1.setYPozice(max1 > 0 ? hrac1.getYPozice() + 10 : hrac1.getYPozice()); // udržení panacka na trase
+
         // HRAC 2
-        hrac2.setYPozice(max2 < -1 ? hrac2.getYPozice() + max2 : hrac2.getYPozice());
+        hrac2.setYPozice(max2 < -1 ? hrac2.getYPozice() - 1 : hrac2.getYPozice());
+        hrac2.setYPozice(max2 < -5 ? hrac2.getYPozice() - 4 : hrac2.getYPozice());
         hrac2.setYPozice(max2 > 0 ? hrac2.getYPozice() + 10 : hrac2.getYPozice()); // udržení panacka na trase
     }
 
     public void kolizeSnecimNaCeste() {
-        boolean zivot1 = false;
-        boolean zivot2 = false;
+        int zivot1 = 0;
+        int zivot2 = 0;
         for (VlastnostiKomponentu e : this.veciNaCeste) {
-            
+
             // HRAČ 1
             //ověření pokud levým spodním rohem nezasahuje do objektu
-            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25) 
-                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
-                    zivot1 = true;
+            if ((e.getXPozice() - 27 < hrac1.getXPozice() - 25) && (e.getXPozice() - 27 + e.getSirka() > hrac1.getXPozice() - 25)
+                    && hrac1.getYPozice() + hrac1.getSirka() > e.getYPozice()) {
+                zivot1 = e.isOrientace() ? 1 : 2;
             }
             //ověření pokud pravým spodním rohem nezasahuje do objektu
-            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25+hrac1.getSirka()) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25+hrac1.getSirka()) 
-                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
-                hrac1.setZivot(hrac1.getZivot()-1);
-                    zivot1 = true;
+            if ((e.getXPozice() - 27 < hrac1.getXPozice() - 25 + hrac1.getSirka()) && (e.getXPozice() - 27 + e.getSirka() > hrac1.getXPozice() - 25 + hrac1.getSirka())
+                    && hrac1.getYPozice() + hrac1.getSirka() > e.getYPozice()) {
+                zivot1 = e.isOrientace() ? 1 : 2;
             }
-            
+
             //ověření pokud prostředním spodním bodem nezasahuje do objektu
             // kdyby náhodou byl objekt užší než hráč
-            if ( (e.getXPozice()-27 < hrac1.getXPozice()-25+hrac1.getSirka()/2) && (e.getXPozice()-27+e.getSirka() > hrac1.getXPozice()-25+hrac1.getSirka()/2) 
-                    && hrac1.getYPozice()+hrac1.getSirka()> e.getYPozice()) {
-                hrac1.setZivot(hrac1.getZivot()-1);
-                    zivot1 = true;
+            if ((e.getXPozice() - 27 < hrac1.getXPozice() - 25 + hrac1.getSirka() / 2) && (e.getXPozice() - 27 + e.getSirka() > hrac1.getXPozice() - 25 + hrac1.getSirka() / 2)
+                    && hrac1.getYPozice() + hrac1.getSirka() > e.getYPozice()) {
+                zivot1 = e.isOrientace() ? 1 : 2;
             }
-            
-            
-            
+
             // HRAC 2 
-            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25) 
-                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
-                    zivot2 = true;
+            if ((e.getXPozice() - 27 < hrac2.getXPozice() - 25) && (e.getXPozice() - 27 + e.getSirka() > hrac2.getXPozice() - 25)
+                    && hrac2.getYPozice() + hrac2.getSirka() > e.getYPozice()) {
+                zivot2 = e.isOrientace() ? 1 : 2;
             }
-            
-            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25+hrac2.getSirka()) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25+hrac2.getSirka()) 
-                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
-                hrac2.setZivot(hrac2.getZivot()-1);
-                    zivot2 = true;
+
+            if ((e.getXPozice() - 27 < hrac2.getXPozice() - 25 + hrac2.getSirka()) && (e.getXPozice() - 27 + e.getSirka() > hrac2.getXPozice() - 25 + hrac2.getSirka())
+                    && hrac2.getYPozice() + hrac2.getSirka() > e.getYPozice()) {
+                zivot2 = e.isOrientace() ? 1 : 2;
             }
-            
-            
-            if ( (e.getXPozice()-27 < hrac2.getXPozice()-25+hrac2.getSirka()/2) && (e.getXPozice()-27+e.getSirka() > hrac2.getXPozice()-25+hrac2.getSirka()/2) 
-                    && hrac2.getYPozice()+hrac2.getSirka()> e.getYPozice()) {
-                hrac2.setZivot(hrac2.getZivot()-1);
-                    zivot2 = true;
-            }   
+
+            if ((e.getXPozice() - 27 < hrac2.getXPozice() - 25 + hrac2.getSirka() / 2) && (e.getXPozice() - 27 + e.getSirka() > hrac2.getXPozice() - 25 + hrac2.getSirka() / 2)
+                    && hrac2.getYPozice() + hrac2.getSirka() > e.getYPozice()) {
+                zivot2 = e.isOrientace() ? 1 : 2;
+            }
+            if (zivot1 == 1) {
+                hrac1.setZivot(hrac1.getZivot() + 30);
+                veciNaCeste.remove(e);
+                vlozeniHub();
+                return;
+            }
+            if (zivot2 == 1) {
+                hrac2.setZivot(hrac2.getZivot() + 30);
+                veciNaCeste.remove(e);
+                vlozeniHub();
+                return;
+            }
         }
-        hrac1.setZivot(zivot1?hrac1.getZivot()-1:hrac1.getZivot());
-        hrac2.setZivot(zivot2?hrac2.getZivot()-1:hrac2.getZivot());
+        System.out.println(zivot1);
+        switch (zivot1) {
+            case 0:
+                hrac1.getZivot();
+                break;
+            case 1:
+                hrac1.setZivot(hrac1.getZivot() + 80);
+                break;
+            case 2:
+
+                hrac1.setZivot(hrac1.getZivot() - 1);
+                break;
+        }
+        switch (zivot2) {
+            case 0:
+                hrac2.getZivot();
+                break;
+            case 2:
+                hrac2.setZivot(hrac2.getZivot() - 1);
+                break;
+        }
     }
+    
+    
+    public void nastaveniRychlosti(){
+        hrac1.setRychlost(hrac1.getRychlost()+1);
+        hrac2.setRychlost(hrac2.getRychlost()+1);
+        for (VlastnostiKomponentu e : this.veciNaCeste) {
+            e.setRychlost(e.getRychlost()+1);
+        }
+        for (VlastnostiKomponentu e : this.komponenty) {
+            e.setRychlost(e.getRychlost()+1);
+        }
+        for (VlastnostiKomponentu e : this.poleCest) {
+            e.setRychlost(e.getRychlost()+1);
+        }
+    }
+    public void vlozeniHub(){
+                Houby neupraveny = new Houby(this);
+                neupraveny.setXPozice(this.getWidth());
+                Random rand = new Random();
+                neupraveny.setOrientace(rand.nextInt(3) == 1 ? true : false);
+
+                int predchozi = this.poleCest.size() - 1;
+                neupraveny.setYPozice(poleCest.get(predchozi).getYPozice());
+
+                this.veciNaCeste.add(neupraveny); // vložení nepřítele do arrylistu 
+    }
+
+
 }

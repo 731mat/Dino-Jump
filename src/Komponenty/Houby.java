@@ -25,7 +25,7 @@ public class Houby extends VlastnostiKomponentu{
 
     @Override
     public void aktualizace() {
-        this.xPozice-=1;
+        this.xPozice-=this.rychlost;
         
     }
 
